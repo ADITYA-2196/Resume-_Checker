@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resume App</title>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r146/three.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+         #3d-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; 
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .navbar {
+            background-color: #333;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+        }
+
+        .navbar-title {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .auth-forms {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-container {
+            display: none; /* Initially hide forms */
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-container.active {
+            display: block;
+        }
+
+        .form-container input, .form-container button {
+            margin-bottom: 10px;
+        }
+        .toggle-button{
+            padding: 10px 20px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+        }
+        .container {
+            padding: 20px;
+        }
+
+        form {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+    </style>
+    <script>
+         function showForm(formId) {
+        document.getElementById('loginForm').classList.remove('active');
+        document.getElementById('signupForm').classList.remove('active');
+        document.getElementById(formId + 'Form').classList.add('active');
+    }
+    </script>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-title">Resume App</div>
+        <div class="auth-forms">
+            <button onclick="showForm('login')">Login</button>
+            <button onclick="showForm('signup')">Signup</button>
+             <button class="toggle-button">Day/Night</button>
+        </div>
+       
+        <div id="loginForm" class="form-container">
+            <h2>Login</h2>
+            <input type="text" placeholder="Username/Email" required>
+            <input type="password" placeholder="Password" required>
+            <button>Login</button>
+        </div>
+
+        <div id="signupForm" class="form-container">
+            <h2>Signup</h2>
+            <input type="text" placeholder="Username/Email" required>
+            <input type="password" placeholder="Password" required>
+            <button>Signup</button>
+        </div>
+    </div>
+    <div id="3d-bg"></div>
+    <div class="container">
+        <form id="resumeForm" >
+             <h1>Create Your Resume</h1>
+            <div><label for="name">Name:</label><input type="text" id="name" name="name" required></div>
+            <div><label for="email">Email:</label><input type="email" id="email" name="email" required></div>
+            <div><label for="phone">Phone:</label><input type="tel" id="phone" name="phone" required></div>
+            <div><label for="experience">Work Experience:</label><textarea id="experience" name="experience"></textarea></div>
+            <div><label for="education">Education:</label><textarea id="education" name="education"></textarea></div>
+            <div><label for="skills">Skills:</label><textarea id="skills" name="skills"></textarea></div>
+            <button type="submit" >Create Resume</button>
+        </form>
+        <div id="resumeResult" style="display: none;">
+            <h2>Resume Created!</h2>
+            <button id="downloadResume">Download Resume</button>
+        </div>
+
+        <form action="/upload" method="post" enctype="multipart/form-data">
+              <h1>Upload Your Resume</h1>
+            <input type="file" name="resume" id="resume">
+            <button type="submit">Upload</button>
+        </form>
+        <div id="uploadResult" style="display: none;">
+            <h2>Uploaded File:</h2>
+            <p id="filePath"></p>
+            <button id="downloadButton">Download</button>
+    </div>
+    </div>
+      <script>
+        resumeForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(resumeForm);
+            const resumeData = {};
+            for (const [key, value] of formData.entries()) {
+                resumeData[key] = value;
+            }
+
+            const response = await fetch('/create-resume', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(resumeData)
+            });
+
+            if (response.ok) {
+                resumeResult.style.display = 'block';
+                downloadResumeButton.onclick = () => {
+                    window.location.href = `/download?filename=resume.pdf`;
+                };
+            } else {
+                alert('Resume creation failed');
+            }
+        });
+       const form = document.querySelector('form');
+        const uploadResult = document.getElementById('uploadResult');
+        const filePathDisplay = document.getElementById('filePath');
+        const downloadButton = document.getElementById('downloadButton');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('resume');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('resume', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.text();
+                filePathDisplay.textContent = result;
+                downloadButton.onclick = () => {
+                    window.location.href = `/download?filename=${result.split('/').pop()}`;
+                };
+                uploadResult.style.display = 'block';
+            } else {
+                alert('Upload failed');
+            }
+        });
+
+        const resumeForm = document.getElementById('resumeForm');
+        const resumeResult = document.getElementById('resumeResult');
+        const downloadResumeButton = document.getElementById('downloadResume');
+
+        // Three.js background code
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('3d-bg').appendChild(renderer.domElement);
+
+        // Add objects to the scene
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.5 });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // Add light
+        const light = new THREE.AmbientLight(0x404040); // soft white light
+        scene.add(light);
+
+        // Add a point light
+        const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        camera.position.z = 5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Sphere rotation animation
+            sphere.rotation.x += 0.005;
+            sphere.rotation.y += 0.01;
+
+            // Optional: make the sphere float up and down
+            sphere.position.y = Math.sin(Date.now() * 0.001) * 0.5;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+
+    </script>
+</body>
+</html>
